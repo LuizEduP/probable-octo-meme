@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Login</title>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="admin-login-page">
+  <div class="login-container">
+    <div class="login-header">
+      <h1>🔒 Painel Administrativo</h1>
+      <p>Faça login para gerenciar seus produtos</p>
+    </div>
+    <form id="loginForm" class="login-form">
+      <div class="form-group">
+        <label for="usuario">Usuário</label>
+        <input type="text" id="usuario" placeholder="Digite seu usuário" required autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label for="senha">Senha</label>
+        <input type="password" id="senha" placeholder="Digite sua senha" required autocomplete="current-password">
+      </div>
+      <div id="loginError" class="login-error" style="display:none;"></div>
+      <button type="submit" class="btn-login">Entrar</button>
+    </form>
+    <p class="login-footer">
+      <a href="/">← Voltar para a loja</a>
+    </p>
+  </div>
+  <script>
+    // Redirecionar para dashboard se já estiver logado
+    if (localStorage.getItem('adminToken')) {
+      window.location.href = '/admin/dashboard.html';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const usuario = document.getElementById('usuario').value;
+      const senha = document.getElementById('senha').value;
+      const errorEl = document.getElementById('loginError');
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usuario, senha })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          errorEl.textContent = data.erro || 'Erro ao fazer login';
+          errorEl.style.display = 'block';
+          return;
+        }
+
+        const data = await res.json();
+        localStorage.setItem('adminToken', data.token);
+        localStorage.setItem('adminUsuario', data.usuario);
+        window.location.href = '/admin/dashboard.html';
+      } catch (err) {
+        errorEl.textContent = 'Erro de conexão. Tente novamente.';
+        errorEl.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

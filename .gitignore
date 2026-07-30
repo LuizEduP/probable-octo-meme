@@ -1,0 +1,7 @@
+node_modules/
+loja.db
+loja.db-*
+.env
+.DS_Store
+*.log
+a.txt

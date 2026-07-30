@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lux Store — Exclusividade e Estilo</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-top">
+      <div class="container">
+        <a href="/" class="logo">
+          <img src="/uploads/logo.jpeg" alt="Logo" class="logo-img">
+        </a>
+        <div class="search-bar">
+          <input type="text" id="searchInput" class="search-input" placeholder="Buscar produtos..." autocomplete="off">
+          <button id="searchBtn" class="search-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </button>
+        </div>
+        <div class="header-actions">
+          <button id="cartToggle" class="cart-btn" aria-label="Carrinho">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            <span id="cartCount" class="cart-count">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <nav class="header-nav">
+      <div class="container">
+        <ul class="nav-list" id="categoryNav">
+          <li><a href="#" class="nav-link active" data-categoria="">Todos</a></li>
+        </ul>
+      </div>
+    </nav>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+    <!-- Hero / Home -->
+    <section class="hero">
+      <div class="hero-bg"></div>
+      <div class="container hero-container">
+        <img src="/uploads/logo.jpeg" alt="Lux Store" class="hero-logo">
+        <h1>Exclusividade em Cada Detalhe</h1>
+        <p class="hero-subtitle">Produtos selecionados com qualidade premium, curadoria impecável e entrega para todo o Brasil. Do essencial ao extraordinário, tudo em um só lugar.</p>
+        <a href="#produtos" class="hero-cta">Explorar Catálogo</a>
+        <span class="hero-scroll">↓ Role para descobrir</span>
+      </div>
+    </section>
+
+    <!-- Produtos -->
+    <div class="container" id="produtos">
+      <section class="products-section">
+        <div class="section-header">
+          <h2 id="sectionTitle">Catálogo</h2>
+          <div class="sort-options">
+            <select id="sortSelect" class="sort-select">
+              <option value="recentes">Mais recentes</option>
+              <option value="menor-preco">Menor preço</option>
+              <option value="maior-preco">Maior preço</option>
+            </select>
+          </div>
+        </div>
+        <div id="productsGrid" class="products-grid"></div>
+        <div id="pagination" class="pagination"></div>
+        <div id="noResults" class="no-results" style="display:none;">
+          <p>Nenhum produto encontrado.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- CARRINHO SIDEBAR -->
+  <div id="cartOverlay" class="cart-overlay"></div>
+  <aside id="cartSidebar" class="cart-sidebar">
+    <div class="cart-header">
+      <h3>Carrinho</h3>
+      <button id="cartClose" class="cart-close">&times;</button>
+    </div>
+    <div id="cartItems" class="cart-items">
+      <p class="cart-empty">Seu carrinho está vazio.</p>
+    </div>
+    <div id="cartFooter" class="cart-footer" style="display:none;">
+      <div class="cart-total">
+        <span>Total</span>
+        <span id="cartTotal">R$ 0,00</span>
+      </div>
+      <button id="checkoutBtn" class="checkout-btn">
+        Finalizar pelo WhatsApp
+      </button>
+    </div>
+  </aside>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 Lux Store. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <!-- Modal detalhes do produto -->
+  <div id="productModal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
