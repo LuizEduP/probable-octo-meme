@@ -64,6 +64,13 @@ for (const c of cats) {
   insertCat.run(c, c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
 }
 
+// Popular produtos de exemplo se o banco estiver vazio (deploy no Railway)
+const qtdProdutos = db.prepare('SELECT COUNT(*) as total FROM produtos').get().total;
+if (qtdProdutos === 0) {
+  console.log('📦 Populando banco com produtos de exemplo...');
+  require('./seed');
+}
+
 // ==================== UPLOAD DE IMAGENS ====================
 const storage = multer.diskStorage({
   destination: path.join(__dirname, 'public', 'uploads'),
