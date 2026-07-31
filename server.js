@@ -1,5 +1,5 @@
 const express = require('express');
-const Database = require('better-sqlite3');
+const { Pool } = require('pg');
 const multer = require('multer');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
@@ -8,67 +8,72 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = 'loja-virtual-secret-key-2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'loja-virtual-secret-key-2026';
 const WHATSAPP_NUMERO = '5521996892217';
+
+// ==================== BANCO DE DADOS POSTGRESQL ====================
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/loja_virtual',
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+});
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
-// ==================== BANCO DE DADOS ====================
-const db = new Database('loja.db');
+// ==================== CRIAÇÃO DE TABELAS ====================
+async function criarTabelas() {
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS admin (
+        id SERIAL PRIMARY KEY,
+        usuario TEXT UNIQUE NOT NULL,
+        senha TEXT NOT NULL
+      );
 
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+      CREATE TABLE IF NOT EXISTS categorias (
+        id SERIAL PRIMARY KEY,
+        nome TEXT UNIQUE NOT NULL,
+        slug TEXT UNIQUE NOT NULL
+      );
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS admin (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    usuario TEXT UNIQUE NOT NULL,
-    senha TEXT NOT NULL
-  );
+      CREATE TABLE IF NOT EXISTS produtos (
+        id SERIAL PRIMARY KEY,
+        nome TEXT NOT NULL,
+        descricao TEXT DEFAULT '',
+        preco REAL NOT NULL,
+        preco_original REAL,
+        imagem TEXT DEFAULT '/uploads/sem-foto.svg',
+        categoria_id INTEGER REFERENCES categorias(id),
+        estoque INTEGER DEFAULT 1,
+        destaque INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
 
-  CREATE TABLE IF NOT EXISTS categorias (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT UNIQUE NOT NULL,
-    slug TEXT UNIQUE NOT NULL
-  );
+    // Admin padrão
+    const adminExiste = await client.query('SELECT id FROM admin LIMIT 1');
+    if (adminExiste.rows.length === 0) {
+      const senhaHash = bcrypt.hashSync('admin123', 10);
+      await client.query('INSERT INTO admin (usuario, senha) VALUES ($1, $2)', ['admin', senhaHash]);
+      console.log('✅ Admin criado: admin / admin123');
+    }
 
-  CREATE TABLE IF NOT EXISTS produtos (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT NOT NULL,
-    descricao TEXT DEFAULT '',
-    preco REAL NOT NULL,
-    preco_original REAL,
-    imagem TEXT DEFAULT '/uploads/sem-foto.svg',
-    categoria_id INTEGER,
-    estoque INTEGER DEFAULT 1,
-    destaque INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (categoria_id) REFERENCES categorias(id)
-  );
-`);
-
-// Criar admin padrão se não existir
-const adminExiste = db.prepare('SELECT id FROM admin LIMIT 1').get();
-if (!adminExiste) {
-  const senhaHash = bcrypt.hashSync('admin123', 10);
-  db.prepare('INSERT INTO admin (usuario, senha) VALUES (?, ?)').run('admin', senhaHash);
-  console.log('✅ Admin criado: admin / admin123');
-}
-
-// Criar categorias padrão
-const cats = ['Eletrônicos', 'Moda', 'Casa', 'Esportes', 'Livros', 'Brinquedos', 'Beleza', 'Alimentos'];
-const insertCat = db.prepare('INSERT OR IGNORE INTO categorias (nome, slug) VALUES (?, ?)');
-for (const c of cats) {
-  insertCat.run(c, c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
-}
-
-// Popular produtos de exemplo se o banco estiver vazio (deploy no Railway)
-const qtdProdutos = db.prepare('SELECT COUNT(*) as total FROM produtos').get().total;
-if (qtdProdutos === 0) {
-  console.log('📦 Populando banco com produtos de exemplo...');
-  require('./seed');
+    // Categorias padrão
+    const cats = ['Eletrônicos', 'Moda', 'Casa', 'Esportes', 'Livros', 'Brinquedos', 'Beleza', 'Alimentos'];
+    for (const c of cats) {
+      const slug = c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      await client.query(
+        'INSERT INTO categorias (nome, slug) VALUES ($1, $2) ON CONFLICT (slug) DO NOTHING',
+        [c, slug]
+      );
+    }
+  } finally {
+    client.release();
+  }
 }
 
 // ==================== UPLOAD DE IMAGENS ====================
@@ -97,116 +102,174 @@ function autenticarToken(req, res, next) {
 }
 
 // ==================== API DE AUTENTICAÇÃO ====================
-app.post('/api/admin/login', (req, res) => {
-  const { usuario, senha } = req.body;
-  const admin = db.prepare('SELECT * FROM admin WHERE usuario = ?').get(usuario);
-  if (!admin || !bcrypt.compareSync(senha, admin.senha)) {
-    return res.status(401).json({ erro: 'Usuário ou senha incorretos' });
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { usuario, senha } = req.body;
+    const result = await pool.query('SELECT * FROM admin WHERE usuario = $1', [usuario]);
+    const admin = result.rows[0];
+    if (!admin || !bcrypt.compareSync(senha, admin.senha)) {
+      return res.status(401).json({ erro: 'Usuário ou senha incorretos' });
+    }
+    const token = jwt.sign({ id: admin.id, usuario: admin.usuario }, JWT_SECRET, { expiresIn: '8h' });
+    res.json({ token, usuario: admin.usuario });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro interno' });
   }
-  const token = jwt.sign({ id: admin.id, usuario: admin.usuario }, JWT_SECRET, { expiresIn: '8h' });
-  res.json({ token, usuario: admin.usuario });
 });
 
 // ==================== API DE CATEGORIAS ====================
-app.get('/api/categorias', (req, res) => {
-  const categorias = db.prepare('SELECT * FROM categorias ORDER BY nome').all();
-  res.json(categorias);
+app.get('/api/categorias', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM categorias ORDER BY nome');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro interno' });
+  }
 });
 
 // ==================== API DE PRODUTOS (PÚBLICA) ====================
-app.get('/api/produtos', (req, res) => {
-  const { busca, categoria, destaque, page = 1, limit = 50 } = req.query;
-  let query = `
-    SELECT p.*, c.nome as categoria_nome, c.slug as categoria_slug
-    FROM produtos p
-    LEFT JOIN categorias c ON p.categoria_id = c.id
-    WHERE 1=1
-  `;
-  const params = [];
+app.get('/api/produtos', async (req, res) => {
+  try {
+    const { busca, categoria, page = 1, limit = 50 } = req.query;
+    const params = [];
+    const conditions = [];
+    let paramIndex = 1;
 
-  if (busca) {
-    query += ' AND (p.nome LIKE ? OR p.descricao LIKE ?)';
-    params.push(`%${busca}%`, `%${busca}%`);
+    if (busca) {
+      conditions.push(`(p.nome ILIKE $${paramIndex} OR p.descricao ILIKE $${paramIndex + 1})`);
+      params.push(`%${busca}%`, `%${busca}%`);
+      paramIndex += 2;
+    }
+    if (categoria) {
+      conditions.push(`c.slug = $${paramIndex}`);
+      params.push(categoria);
+      paramIndex += 1;
+    }
+
+    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+
+    // Total
+    const countResult = await pool.query(
+      `SELECT COUNT(*) as total FROM produtos p LEFT JOIN categorias c ON p.categoria_id = c.id ${whereClause}`,
+      params
+    );
+    const total = parseInt(countResult.rows[0].total);
+
+    // Paginação
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const result = await pool.query(
+      `SELECT p.*, c.nome as categoria_nome, c.slug as categoria_slug
+       FROM produtos p
+       LEFT JOIN categorias c ON p.categoria_id = c.id
+       ${whereClause}
+       ORDER BY p.created_at DESC
+       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      [...params, parseInt(limit), offset]
+    );
+
+    res.json({
+      produtos: result.rows,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit))
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro interno' });
   }
-  if (categoria) {
-    query += ' AND c.slug = ?';
-    params.push(categoria);
-  }
-  if (destaque === '1') {
-    query += ' AND p.destaque = 1';
-  }
-
-  // Total de registros
-  const countQuery = query.replace(/SELECT p\.\*, c\.nome.*?FROM/, 'SELECT COUNT(*) as total FROM');
-  const { total } = db.prepare(countQuery).get(...params);
-
-  // Paginação
-  const offset = (parseInt(page) - 1) * parseInt(limit);
-  query += ' ORDER BY p.created_at DESC LIMIT ? OFFSET ?';
-  params.push(parseInt(limit), offset);
-
-  const produtos = db.prepare(query).all(...params);
-  res.json({ produtos, total, page: parseInt(page), pages: Math.ceil(total / parseInt(limit)) });
 });
 
-app.get('/api/produtos/:id', (req, res) => {
-  const produto = db.prepare(`
-    SELECT p.*, c.nome as categoria_nome, c.slug as categoria_slug
-    FROM produtos p
-    LEFT JOIN categorias c ON p.categoria_id = c.id
-    WHERE p.id = ?
-  `).get(req.params.id);
-  if (!produto) return res.status(404).json({ erro: 'Produto não encontrado' });
-  res.json(produto);
+app.get('/api/produtos/:id', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT p.*, c.nome as categoria_nome, c.slug as categoria_slug
+       FROM produtos p
+       LEFT JOIN categorias c ON p.categoria_id = c.id
+       WHERE p.id = $1`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ erro: 'Produto não encontrado' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro interno' });
+  }
 });
 
 // ==================== API DE PRODUTOS (ADMIN) ====================
-app.post('/api/admin/produtos', autenticarToken, upload.single('imagem'), (req, res) => {
-  const { nome, descricao, preco, preco_original, categoria_id, estoque, destaque } = req.body;
-  const imagem = req.file ? '/uploads/' + req.file.filename : (req.body.imagem || '/uploads/sem-foto.svg');
+app.post('/api/admin/produtos', autenticarToken, upload.single('imagem'), async (req, res) => {
+  try {
+    const { nome, descricao, preco, preco_original, categoria_id, estoque, destaque } = req.body;
+    const imagem = req.file ? '/uploads/' + req.file.filename : (req.body.imagem || '/uploads/sem-foto.svg');
 
-  const result = db.prepare(`
-    INSERT INTO produtos (nome, descricao, preco, preco_original, imagem, categoria_id, estoque, destaque)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(nome, descricao || '', parseFloat(preco), preco_original ? parseFloat(preco_original) : null,
-    imagem, parseInt(categoria_id) || null, parseInt(estoque) || 1, destaque === '1' ? 1 : 0);
+    const result = await pool.query(
+      `INSERT INTO produtos (nome, descricao, preco, preco_original, imagem, categoria_id, estoque, destaque)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id`,
+      [nome, descricao || '', parseFloat(preco), preco_original ? parseFloat(preco_original) : null,
+       imagem, parseInt(categoria_id) || null, parseInt(estoque) || 1, destaque === '1' ? 1 : 0]
+    );
 
-  res.status(201).json({ id: result.lastInsertRowid, mensagem: 'Produto criado com sucesso' });
+    res.status(201).json({ id: result.rows[0].id, mensagem: 'Produto criado com sucesso' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro interno' });
+  }
 });
 
-app.put('/api/admin/produtos/:id', autenticarToken, upload.single('imagem'), (req, res) => {
-  const { nome, descricao, preco, preco_original, categoria_id, estoque, destaque } = req.body;
-  const produto = db.prepare('SELECT * FROM produtos WHERE id = ?').get(req.params.id);
-  if (!produto) return res.status(404).json({ erro: 'Produto não encontrado' });
+app.put('/api/admin/produtos/:id', autenticarToken, upload.single('imagem'), async (req, res) => {
+  try {
+    const { nome, descricao, preco, preco_original, categoria_id, estoque, destaque } = req.body;
 
-  const imagem = req.file ? '/uploads/' + req.file.filename : req.body.imagem || produto.imagem;
+    const existente = await pool.query('SELECT * FROM produtos WHERE id = $1', [req.params.id]);
+    if (existente.rows.length === 0) {
+      return res.status(404).json({ erro: 'Produto não encontrado' });
+    }
 
-  db.prepare(`
-    UPDATE produtos SET nome=?, descricao=?, preco=?, preco_original=?, imagem=?, categoria_id=?, estoque=?, destaque=?
-    WHERE id=?
-  `).run(nome, descricao || '', parseFloat(preco), preco_original ? parseFloat(preco_original) : null,
-    imagem, parseInt(categoria_id) || null, parseInt(estoque) || 1, destaque === '1' ? 1 : 0, req.params.id);
+    const imagem = req.file ? '/uploads/' + req.file.filename : req.body.imagem || existente.rows[0].imagem;
 
-  res.json({ mensagem: 'Produto atualizado com sucesso' });
+    await pool.query(
+      `UPDATE produtos SET nome=$1, descricao=$2, preco=$3, preco_original=$4, imagem=$5,
+       categoria_id=$6, estoque=$7, destaque=$8 WHERE id=$9`,
+      [nome, descricao || '', parseFloat(preco), preco_original ? parseFloat(preco_original) : null,
+       imagem, parseInt(categoria_id) || null, parseInt(estoque) || 1, destaque === '1' ? 1 : 0, req.params.id]
+    );
+
+    res.json({ mensagem: 'Produto atualizado com sucesso' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro interno' });
+  }
 });
 
-app.delete('/api/admin/produtos/:id', autenticarToken, (req, res) => {
-  const produto = db.prepare('SELECT * FROM produtos WHERE id = ?').get(req.params.id);
-  if (!produto) return res.status(404).json({ erro: 'Produto não encontrado' });
-  db.prepare('DELETE FROM produtos WHERE id = ?').run(req.params.id);
-  res.json({ mensagem: 'Produto removido com sucesso' });
-});
-
-// ==================== ROTAS DO FRONTEND ====================
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
+app.delete('/api/admin/produtos/:id', autenticarToken, async (req, res) => {
+  try {
+    const existente = await pool.query('SELECT * FROM produtos WHERE id = $1', [req.params.id]);
+    if (existente.rows.length === 0) {
+      return res.status(404).json({ erro: 'Produto não encontrado' });
+    }
+    await pool.query('DELETE FROM produtos WHERE id = $1', [req.params.id]);
+    res.json({ mensagem: 'Produto removido com sucesso' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro interno' });
+  }
 });
 
 // ==================== ARQUIVOS ESTÁTICOS ====================
 app.use(express.static(path.join(__dirname, 'public'), { redirect: false }));
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
-// Fallback para index.html (SPA)
+// ==================== ROTAS DO FRONTEND ====================
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
+});
+
+// Fallback SPA
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
     return res.status(404).json({ erro: 'Rota não encontrada' });
@@ -218,8 +281,24 @@ app.use((req, res, next) => {
 });
 
 // ==================== INICIAR SERVIDOR ====================
-app.listen(PORT, () => {
-  console.log(`🚀 Loja rodando em http://localhost:${PORT}`);
-  console.log(`🔧 Painel Admin em http://localhost:${PORT}/admin`);
-  console.log(`📱 WhatsApp: ${WHATSAPP_NUMERO}`);
+async function iniciar() {
+  await criarTabelas();
+
+  // Seed automático se banco vazio
+  const count = await pool.query('SELECT COUNT(*) as total FROM produtos');
+  if (parseInt(count.rows[0].total) === 0) {
+    console.log('📦 Populando banco com produtos de exemplo...');
+    await require('./seed')(pool);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Loja rodando em http://localhost:${PORT}`);
+    console.log(`🔧 Painel Admin em http://localhost:${PORT}/admin`);
+    console.log(`📱 WhatsApp: ${WHATSAPP_NUMERO}`);
+  });
+}
+
+iniciar().catch(err => {
+  console.error('Erro ao iniciar servidor:', err);
+  process.exit(1);
 });
