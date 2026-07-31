@@ -20,8 +20,6 @@ const pool = new Pool({
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 // ==================== CRIAÇÃO DE TABELAS ====================
 async function criarTabelas() {
@@ -282,23 +280,33 @@ app.use((req, res, next) => {
 
 // ==================== INICIAR SERVIDOR ====================
 async function iniciar() {
-  await criarTabelas();
+  try {
+    console.log('⏳ Conectando ao PostgreSQL...');
+    await pool.query('SELECT 1');
+    console.log('✅ PostgreSQL conectado!');
 
-  // Seed automático se banco vazio
-  const count = await pool.query('SELECT COUNT(*) as total FROM produtos');
-  if (parseInt(count.rows[0].total) === 0) {
-    console.log('📦 Populando banco com produtos de exemplo...');
-    await require('./seed')(pool);
+    console.log('⏳ Criando tabelas...');
+    await criarTabelas();
+    console.log('✅ Tabelas prontas!');
+
+    // Seed automático se banco vazio
+    const count = await pool.query('SELECT COUNT(*) as total FROM produtos');
+    if (parseInt(count.rows[0].total) === 0) {
+      console.log('📦 Populando banco com produtos de exemplo...');
+      await require('./seed')(pool);
+    }
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Loja rodando na porta ${PORT}`);
+      console.log(`🔧 Painel Admin em /admin`);
+      console.log(`📱 WhatsApp: ${WHATSAPP_NUMERO}`);
+    });
+  } catch (err) {
+    console.error('❌ ERRO NA INICIALIZAÇÃO:');
+    console.error(err.message);
+    console.error(err.stack);
+    process.exit(1);
   }
-
-  app.listen(PORT, () => {
-    console.log(`🚀 Loja rodando em http://localhost:${PORT}`);
-    console.log(`🔧 Painel Admin em http://localhost:${PORT}/admin`);
-    console.log(`📱 WhatsApp: ${WHATSAPP_NUMERO}`);
-  });
 }
 
-iniciar().catch(err => {
-  console.error('Erro ao iniciar servidor:', err);
-  process.exit(1);
-});
+iniciar();
