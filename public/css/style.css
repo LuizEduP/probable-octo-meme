@@ -210,8 +210,8 @@ input, select { font-family: inherit; }
   bottom: 0;
   left: 0;
   right: 0;
-  height: 160px;
-  background: linear-gradient(to bottom, transparent, #f5f6f8);
+  height: 200px;
+  background: linear-gradient(to bottom, transparent 40%, #f5f6f8 100%);
   pointer-events: none;
   z-index: 0;
 }
