@@ -202,7 +202,6 @@ input, select { font-family: inherit; }
   background: linear-gradient(180deg, #020408 0%, #020408 40%, #0c1524 75%, #162032 100%);
   overflow: hidden;
   padding: 60px 20px 80px;
-  border-bottom: 1px solid var(--border);
 }
 
 .hero::after {
@@ -211,8 +210,8 @@ input, select { font-family: inherit; }
   bottom: 0;
   left: 0;
   right: 0;
-  height: 120px;
-  background: linear-gradient(to bottom, transparent, var(--bg-primary));
+  height: 160px;
+  background: linear-gradient(to bottom, transparent, #f5f6f8);
   pointer-events: none;
   z-index: 0;
 }
@@ -487,7 +486,6 @@ input, select { font-family: inherit; }
 /* ==================== PRODUCTS WRAPPER ==================== */
 .products-wrapper {
   background: #f5f6f8;
-  border-top: 1px solid #e2e4e8;
 }
 
 /* ==================== PRODUCTS SECTION ==================== */
