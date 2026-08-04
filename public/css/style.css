@@ -128,7 +128,7 @@ input, select { font-family: inherit; }
 .search-btn:hover { color: var(--accent); }
 
 /* Cart Button */
-.header-actions { flex-shrink: 0; }
+.header-actions { flex-shrink: 0; display: flex; align-items: center; gap: 10px; }
 
 .cart-btn {
   position: relative;
@@ -140,6 +140,21 @@ input, select { font-family: inherit; }
 }
 
 .cart-btn:hover { color: var(--accent); }
+
+.checkout-header-btn {
+  padding: 9px 20px;
+  background: var(--green);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 50px;
+  transition: all var(--transition);
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.checkout-header-btn:hover { background: var(--green-hover); }
 
 .cart-count {
   position: absolute;

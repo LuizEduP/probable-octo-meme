@@ -22,6 +22,7 @@ const searchInput = $('#searchInput');
 const searchBtn = $('#searchBtn');
 const cartToggle = $('#cartToggle');
 const cartCount = $('#cartCount');
+const checkoutHeader = $('#checkoutHeader');
 const cartSidebar = $('#cartSidebar');
 const cartOverlay = $('#cartOverlay');
 const cartClose = $('#cartClose');
@@ -77,6 +78,7 @@ function setupEventListeners() {
   cartClose.addEventListener('click', fecharCarrinho);
   cartOverlay.addEventListener('click', fecharCarrinho);
   checkoutBtn.addEventListener('click', finalizarCompra);
+  checkoutHeader.addEventListener('click', finalizarCompra);
 
   // Modal
   modalClose.addEventListener('click', fecharModal);
@@ -350,6 +352,7 @@ function salvarCarrinho() {
 function atualizarCarrinhoUI() {
   const totalItens = carrinho.reduce((sum, item) => sum + item.quantidade, 0);
   cartCount.textContent = totalItens;
+  checkoutHeader.style.display = carrinho.length > 0 ? '' : 'none';
 
   if (carrinho.length === 0) {
     cartItems.innerHTML = '<p class="cart-empty">Seu carrinho está vazio.</p>';
