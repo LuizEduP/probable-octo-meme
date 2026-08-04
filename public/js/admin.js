@@ -5,12 +5,6 @@ if (!token) {
 }
 
 // ==================== CONFIGURAÇÃO ====================
-const headers = {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${token}`
-};
-
-// ==================== ELEMENTOS DOM ====================
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
 
@@ -21,15 +15,13 @@ let editandoId = null;
 
 // ==================== INICIALIZAÇÃO ====================
 document.addEventListener('DOMContentLoaded', () => {
-  // Exibir nome do admin
   const usuario = localStorage.getItem('adminUsuario') || 'Admin';
   $('#adminUser').textContent = `👤 ${usuario}`;
 
-  // Carregar dados iniciais
   carregarCategoriasSelect();
   carregarProdutosAdmin();
 
-  // Configurar navegação da sidebar
+  // Navegação da sidebar
   $$('.sidebar-link[data-section]').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
@@ -67,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     navegarPara('produtos');
   });
 
-  // Preview de imagem
+  // Preview imagem principal
   $('#produtoImagem').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -79,6 +71,39 @@ document.addEventListener('DOMContentLoaded', () => {
       reader.readAsDataURL(file);
     }
   });
+
+  // Preview fotos adicionais
+  $('#produtoFotos').addEventListener('change', (e) => {
+    const files = e.target.files;
+    const container = $('#previewFotos');
+    container.innerHTML = '';
+    for (const file of files) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = document.createElement('img');
+        img.src = ev.target.result;
+        img.className = 'preview-thumb';
+        container.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Preview video
+  $('#produtoVideo').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    const videoEl = $('#previewVideo');
+    if (file) {
+      const url = URL.createObjectURL(file);
+      videoEl.src = url;
+      videoEl.style.display = 'block';
+    } else {
+      videoEl.style.display = 'none';
+    }
+  });
+
+  // Salvar Hero
+  $('#salvarHero').addEventListener('click', salvarHero);
 
   // Paginação admin
   $('#adminPagination').addEventListener('click', (e) => {
@@ -100,11 +125,15 @@ function navegarPara(section) {
   if (sectionEl) sectionEl.classList.add('active');
   if (linkEl) linkEl.classList.add('active');
 
-  $('#sectionName').textContent = section === 'produtos' ? '📦 Produtos' : section === 'novo' ? '➕ Produto' : '';
+  const titles = { produtos: '📦 Produtos', novo: '➕ Produto', hero: '⭐ Destaques Hero' };
+  $('#sectionName').textContent = titles[section] || '';
 
   if (section === 'produtos') {
     if (editandoId) resetarFormulario();
     carregarProdutosAdmin();
+  } else if (section === 'hero') {
+    if (editandoId) resetarFormulario();
+    carregarHeroSection();
   } else if (section === 'novo' && !editandoId) {
     resetarFormulario();
   }
@@ -124,6 +153,81 @@ async function carregarCategoriasSelect() {
     });
   } catch (err) {
     console.error('Erro ao carregar categorias:', err);
+  }
+}
+
+// ==================== HERO SECTION ====================
+async function carregarHeroSection() {
+  try {
+    // Carregar todos os produtos para os selects
+    const res = await fetch('/api/produtos?limit=200');
+    const data = await res.json();
+    const produtos = data.produtos;
+
+    // Popular selects
+    ['heroLancamento', 'heroExclusivo', 'heroMaisVendido'].forEach(id => {
+      const select = $('#' + id);
+      select.innerHTML = '<option value="">Selecione um produto...</option>';
+      produtos.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.nome;
+        select.appendChild(opt);
+      });
+    });
+
+    // Carregar hero atual
+    const heroRes = await fetch('/api/produtos/hero');
+    const heroProds = await heroRes.json();
+
+    heroProds.forEach(p => {
+      if (p.hero_tag === 'lancamento') $('#heroLancamento').value = p.id;
+      if (p.hero_tag === 'exclusivo') $('#heroExclusivo').value = p.id;
+      if (p.hero_tag === 'mais_vendido') $('#heroMaisVendido').value = p.id;
+    });
+  } catch (err) {
+    console.error('Erro ao carregar hero:', err);
+  }
+}
+
+async function salvarHero() {
+  const slots = [
+    { id: $('#heroLancamento').value, tag: 'lancamento' },
+    { id: $('#heroExclusivo').value, tag: 'exclusivo' },
+    { id: $('#heroMaisVendido').value, tag: 'mais_vendido' }
+  ];
+
+  try {
+    // Primeiro limpa todos
+    for (const slot of slots) {
+      if (slot.id) {
+        await fetch(`/api/admin/produtos/${slot.id}/hero`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ hero_tag: slot.tag })
+        });
+      }
+    }
+    // Limpa slots vazios
+    for (const slot of slots) {
+      if (!slot.id) {
+        // Busca o produto atual com essa tag e limpa
+        const res = await fetch('/api/produtos/hero');
+        const heroProds = await res.json();
+        const atual = heroProds.find(p => p.hero_tag === slot.tag);
+        if (atual) {
+          await fetch(`/api/admin/produtos/${atual.id}/hero`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ hero_tag: null })
+          });
+        }
+      }
+    }
+    mostrarToast('Destaques salvos com sucesso!');
+  } catch (err) {
+    console.error('Erro ao salvar hero:', err);
+    mostrarToast('Erro ao salvar', true);
   }
 }
 
@@ -156,12 +260,14 @@ function renderTabelaProdutos(produtos) {
     return;
   }
 
+  const heroLabels = { lancamento: '🆕 Lanç.', exclusivo: '💎 Excl.', mais_vendido: '🔥 Top' };
+
   $('#produtosTableBody').innerHTML = produtos.map(p => `
     <tr>
       <td>
         <img src="${p.imagem}" alt="" class="table-img" onerror="this.src='/uploads/sem-foto.svg'">
       </td>
-      <td class="table-nome" title="${p.nome}">${p.nome}</td>
+      <td class="table-nome" title="${p.nome}">${p.nome}${p.hero_tag ? ` <span class="badge-hero">${heroLabels[p.hero_tag] || p.hero_tag}</span>` : ''}</td>
       <td>${p.categoria_nome || '-'}</td>
       <td class="table-preco">R$ ${formatarPreco(p.preco)}</td>
       <td>${p.destaque ? '<span class="badge-destaque">⭐ Destaque</span>' : '-'}</td>
@@ -215,13 +321,29 @@ async function editarProduto(id) {
     $('#produtoEstoque').value = p.estoque;
     $('#produtoCategoria').value = p.categoria_id || '';
     $('#produtoDestaque').checked = p.destaque === 1;
+    $('#produtoHeroTag').value = p.hero_tag || '';
     $('#imagemAtual').value = p.imagem;
+    $('#fotosExistentes').value = p.fotos || '[]';
+    $('#videoExistente').value = p.video || '';
 
     if (p.imagem && p.imagem !== '/uploads/sem-foto.svg') {
       $('#previewImagem').src = p.imagem;
       $('#previewImagem').style.display = 'block';
     } else {
       $('#previewImagem').style.display = 'none';
+    }
+
+    // Preview fotos existentes
+    const fotosArr = JSON.parse(p.fotos || '[]');
+    const previewFotos = $('#previewFotos');
+    previewFotos.innerHTML = fotosArr.map(f => `<img src="${f}" class="preview-thumb">`).join('');
+
+    // Preview video existente
+    if (p.video) {
+      $('#previewVideo').src = p.video;
+      $('#previewVideo').style.display = 'block';
+    } else {
+      $('#previewVideo').style.display = 'none';
     }
 
     $('#submitBtn').textContent = '💾 Atualizar Produto';
@@ -242,13 +364,35 @@ async function salvarProduto(e) {
   formData.append('categoria_id', $('#produtoCategoria').value);
   formData.append('estoque', $('#produtoEstoque').value || '1');
   formData.append('destaque', $('#produtoDestaque').checked ? '1' : '0');
+  formData.append('hero_tag', $('#produtoHeroTag').value || '');
 
+  // Imagem principal
   const fileInput = $('#produtoImagem');
   if (fileInput.files[0]) {
     formData.append('imagem', fileInput.files[0]);
   }
-  if ($('#imagemAtual').value) {
+  if ($('#imagemAtual').value && !fileInput.files[0]) {
     formData.append('imagem', $('#imagemAtual').value);
+  }
+
+  // Fotos adicionais
+  const fotosInput = $('#produtoFotos');
+  if (fotosInput.files.length > 0) {
+    for (const f of fotosInput.files) {
+      formData.append('fotos', f);
+    }
+  }
+  if (fotosInput.files.length === 0 && $('#fotosExistentes').value) {
+    formData.append('fotos', $('#fotosExistentes').value);
+  }
+
+  // Video
+  const videoInput = $('#produtoVideo');
+  if (videoInput.files[0]) {
+    formData.append('video', videoInput.files[0]);
+  }
+  if (!videoInput.files[0] && $('#videoExistente').value) {
+    formData.append('video', $('#videoExistente').value);
   }
 
   try {
@@ -257,7 +401,6 @@ async function salvarProduto(e) {
       : '/api/admin/produtos';
     const method = editandoId ? 'PUT' : 'POST';
 
-    // Para FormData, não usar Content-Type header (o browser define com boundary)
     const fetchHeaders = { 'Authorization': `Bearer ${token}` };
 
     const res = await fetch(url, {
@@ -310,7 +453,11 @@ function resetarFormulario() {
   $('#produtoForm').reset();
   $('#produtoId').value = '';
   $('#imagemAtual').value = '';
+  $('#fotosExistentes').value = '[]';
+  $('#videoExistente').value = '';
   $('#previewImagem').style.display = 'none';
+  $('#previewFotos').innerHTML = '';
+  $('#previewVideo').style.display = 'none';
   $('#submitBtn').textContent = '💾 Salvar Produto';
 }
 

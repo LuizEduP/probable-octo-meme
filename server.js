@@ -48,9 +48,17 @@ async function criarTabelas() {
         categoria_id INTEGER REFERENCES categorias(id),
         estoque INTEGER DEFAULT 1,
         destaque INTEGER DEFAULT 0,
+        hero_tag TEXT,
+        fotos TEXT DEFAULT '[]',
+        video TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT NOW()
       );
     `);
+
+    // Adicionar colunas que podem não existir em bancos antigos
+    try { await client.query('ALTER TABLE produtos ADD COLUMN IF NOT EXISTS hero_tag TEXT'); } catch (e) {}
+    try { await client.query('ALTER TABLE produtos ADD COLUMN IF NOT EXISTS fotos TEXT DEFAULT \'[]\''); } catch (e) {}
+    try { await client.query('ALTER TABLE produtos ADD COLUMN IF NOT EXISTS video TEXT DEFAULT \'\''); } catch (e) {}
 
     // Admin padrão
     const adminExiste = await client.query('SELECT id FROM admin LIMIT 1');
@@ -82,7 +90,14 @@ const storage = multer.diskStorage({
     cb(null, 'produto-' + Date.now() + ext);
   }
 });
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
+
+// Upload de múltiplos campos
+const uploadProduto = upload.fields([
+  { name: 'imagem', maxCount: 1 },
+  { name: 'fotos', maxCount: 5 },
+  { name: 'video', maxCount: 1 }
+]);
 
 // ==================== MIDDLEWARE DE AUTENTICAÇÃO ====================
 function autenticarToken(req, res, next) {
@@ -199,17 +214,61 @@ app.get('/api/produtos/:id', async (req, res) => {
 });
 
 // ==================== API DE PRODUTOS (ADMIN) ====================
-app.post('/api/admin/produtos', autenticarToken, upload.single('imagem'), async (req, res) => {
+app.get('/api/produtos/hero', async (req, res) => {
   try {
-    const { nome, descricao, preco, preco_original, categoria_id, estoque, destaque } = req.body;
-    const imagem = req.file ? '/uploads/' + req.file.filename : (req.body.imagem || '/uploads/sem-foto.svg');
+    const result = await pool.query(
+      `SELECT * FROM produtos WHERE hero_tag IS NOT NULL ORDER BY
+       CASE hero_tag WHEN 'lancamento' THEN 1 WHEN 'exclusivo' THEN 2 WHEN 'mais_vendido' THEN 3 END`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+app.put('/api/admin/produtos/:id/hero', autenticarToken, async (req, res) => {
+  try {
+    const { hero_tag } = req.body;
+    // Se já existe outro produto com essa tag, limpa
+    if (hero_tag) {
+      await pool.query('UPDATE produtos SET hero_tag = NULL WHERE hero_tag = $1', [hero_tag]);
+    }
+    await pool.query('UPDATE produtos SET hero_tag = $1 WHERE id = $2', [hero_tag || null, req.params.id]);
+    res.json({ mensagem: 'Hero atualizado' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+app.post('/api/admin/produtos', autenticarToken, uploadProduto, async (req, res) => {
+  try {
+    const { nome, descricao, preco, preco_original, categoria_id, estoque, destaque, hero_tag } = req.body;
+    const imagem = req.files?.imagem?.[0]
+      ? '/uploads/' + req.files.imagem[0].filename
+      : (req.body.imagem || '/uploads/sem-foto.svg');
+
+    const fotos = req.files?.fotos
+      ? JSON.stringify(req.files.fotos.map(f => '/uploads/' + f.filename))
+      : (req.body.fotos || '[]');
+
+    const video = req.files?.video?.[0]
+      ? '/uploads/' + req.files.video[0].filename
+      : (req.body.video || '');
+
+    // Limpa hero_tag de outro produto se necessário
+    if (hero_tag) {
+      await pool.query('UPDATE produtos SET hero_tag = NULL WHERE hero_tag = $1', [hero_tag]);
+    }
 
     const result = await pool.query(
-      `INSERT INTO produtos (nome, descricao, preco, preco_original, imagem, categoria_id, estoque, destaque)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO produtos (nome, descricao, preco, preco_original, imagem, categoria_id, estoque, destaque, hero_tag, fotos, video)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id`,
       [nome, descricao || '', parseFloat(preco), preco_original ? parseFloat(preco_original) : null,
-       imagem, parseInt(categoria_id) || null, parseInt(estoque) || 1, destaque === '1' ? 1 : 0]
+       imagem, parseInt(categoria_id) || null, parseInt(estoque) || 1, destaque === '1' ? 1 : 0,
+       hero_tag || null, fotos, video]
     );
 
     res.status(201).json({ id: result.rows[0].id, mensagem: 'Produto criado com sucesso' });
@@ -219,22 +278,38 @@ app.post('/api/admin/produtos', autenticarToken, upload.single('imagem'), async 
   }
 });
 
-app.put('/api/admin/produtos/:id', autenticarToken, upload.single('imagem'), async (req, res) => {
+app.put('/api/admin/produtos/:id', autenticarToken, uploadProduto, async (req, res) => {
   try {
-    const { nome, descricao, preco, preco_original, categoria_id, estoque, destaque } = req.body;
+    const { nome, descricao, preco, preco_original, categoria_id, estoque, destaque, hero_tag } = req.body;
 
     const existente = await pool.query('SELECT * FROM produtos WHERE id = $1', [req.params.id]);
     if (existente.rows.length === 0) {
       return res.status(404).json({ erro: 'Produto não encontrado' });
     }
 
-    const imagem = req.file ? '/uploads/' + req.file.filename : req.body.imagem || existente.rows[0].imagem;
+    const imagem = req.files?.imagem?.[0]
+      ? '/uploads/' + req.files.imagem[0].filename
+      : req.body.imagem || existente.rows[0].imagem;
+
+    const fotos = req.files?.fotos
+      ? JSON.stringify(req.files.fotos.map(f => '/uploads/' + f.filename))
+      : (req.body.fotos || existente.rows[0].fotos || '[]');
+
+    const video = req.files?.video?.[0]
+      ? '/uploads/' + req.files.video[0].filename
+      : (req.body.video || existente.rows[0].video || '');
+
+    // Limpa hero_tag de outro produto se necessário
+    if (hero_tag) {
+      await pool.query('UPDATE produtos SET hero_tag = NULL WHERE hero_tag = $1 AND id != $2', [hero_tag, req.params.id]);
+    }
 
     await pool.query(
       `UPDATE produtos SET nome=$1, descricao=$2, preco=$3, preco_original=$4, imagem=$5,
-       categoria_id=$6, estoque=$7, destaque=$8 WHERE id=$9`,
+       categoria_id=$6, estoque=$7, destaque=$8, hero_tag=$9, fotos=$10, video=$11 WHERE id=$12`,
       [nome, descricao || '', parseFloat(preco), preco_original ? parseFloat(preco_original) : null,
-       imagem, parseInt(categoria_id) || null, parseInt(estoque) || 1, destaque === '1' ? 1 : 0, req.params.id]
+       imagem, parseInt(categoria_id) || null, parseInt(estoque) || 1, destaque === '1' ? 1 : 0,
+       hero_tag || null, fotos, video, req.params.id]
     );
 
     res.json({ mensagem: 'Produto atualizado com sucesso' });

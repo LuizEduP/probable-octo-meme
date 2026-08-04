@@ -40,9 +40,11 @@ const sectionTitle = $('#sectionTitle');
 const sortSelect = $('#sortSelect');
 const toast = $('#toast');
 const hero = $('.hero');
+const heroCards = $('#heroCards');
 
 // ==================== INICIALIZAÇÃO ====================
 async function init() {
+  await carregarHero();
   await carregarCategorias();
   await carregarProdutos();
   atualizarCarrinhoUI();
@@ -112,6 +114,30 @@ function setupEventListeners() {
     carregarProdutos();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+}
+
+// ==================== HERO CARDS ====================
+async function carregarHero() {
+  try {
+    const res = await fetch(`${API_BASE}/api/produtos/hero`);
+    const heroProds = await res.json();
+    if (heroProds.length === 0) {
+      heroCards.innerHTML = '';
+      return;
+    }
+    const tags = { lancamento: 'Lançamento', exclusivo: 'Exclusivo', mais_vendido: 'Mais Vendido' };
+    heroCards.innerHTML = heroProds.map(p => `
+      <div class="hcard" onclick="abrirModal(${p.id})">
+        <div class="hcard-reflex"></div>
+        <div class="hcard-img">
+          <img src="${p.imagem}" alt="${p.nome}" loading="lazy" onerror="this.src='/uploads/sem-foto.svg'">
+        </div>
+        <span class="hcard-tag">${tags[p.hero_tag] || p.hero_tag}</span>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Erro ao carregar hero:', err);
+  }
 }
 
 // ==================== CATEGORIAS ====================

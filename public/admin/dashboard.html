@@ -17,6 +17,7 @@
     <nav class="sidebar-nav">
       <a href="#produtos" class="sidebar-link active" data-section="produtos">📦 Produtos</a>
       <a href="#novo" class="sidebar-link" data-section="novo">➕ Novo Produto</a>
+      <a href="#hero" class="sidebar-link" data-section="hero">⭐ Destaques Hero</a>
       <a href="#" id="sidebarLogout" class="sidebar-link sidebar-logout">🚪 Sair</a>
     </nav>
   </aside>
@@ -63,6 +64,8 @@
       <h2 id="formTitle">Novo Produto</h2>
       <form id="produtoForm" class="admin-form">
         <input type="hidden" id="produtoId">
+        <input type="hidden" id="fotosExistentes" value="[]">
+        <input type="hidden" id="videoExistente" value="">
 
         <div class="form-row">
           <div class="form-group full">
@@ -101,14 +104,44 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="produtoImagem">Imagem</label>
-            <input type="file" id="produtoImagem" accept="image/*">
+            <label for="produtoHeroTag">Destaque Hero</label>
+            <select id="produtoHeroTag">
+              <option value="">Nenhum</option>
+              <option value="lancamento">Lançamento</option>
+              <option value="exclusivo">Exclusivo</option>
+              <option value="mais_vendido">Mais Vendido</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="checkbox-label">
               <input type="checkbox" id="produtoDestaque">
               Produto em destaque
             </label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full">
+            <label for="produtoImagem">Imagem Principal</label>
+            <input type="file" id="produtoImagem" accept="image/*">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full">
+            <label for="produtoFotos">Fotos Adicionais (máx. 5)</label>
+            <input type="file" id="produtoFotos" accept="image/*" multiple>
+            <small>Selecione até 5 imagens</small>
+            <div id="previewFotos" class="preview-fotos"></div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full">
+            <label for="produtoVideo">Vídeo (máx. 30s)</label>
+            <input type="file" id="produtoVideo" accept="video/*">
+            <small>Vídeos de até 30 segundos</small>
+            <video id="previewVideo" class="preview-video" style="display:none;" controls></video>
           </div>
         </div>
 
@@ -124,6 +157,33 @@
           <button type="button" class="btn-outline btn-lg" id="cancelBtn">Cancelar</button>
         </div>
       </form>
+    </section>
+
+    <!-- Seção: Destaques Hero -->
+    <section id="section-hero" class="admin-section">
+      <h2>⭐ Destaques da Hero Section</h2>
+      <p class="section-desc">Selecione os produtos que aparecerão nos cards de destaque na página inicial.</p>
+      <div id="heroSlots" class="hero-slots">
+        <div class="hero-slot-card">
+          <h3>🆕 Lançamento</h3>
+          <select id="heroLancamento" class="hero-select">
+            <option value="">Selecione um produto...</option>
+          </select>
+        </div>
+        <div class="hero-slot-card">
+          <h3>💎 Exclusivo</h3>
+          <select id="heroExclusivo" class="hero-select">
+            <option value="">Selecione um produto...</option>
+          </select>
+        </div>
+        <div class="hero-slot-card">
+          <h3>🔥 Mais Vendido</h3>
+          <select id="heroMaisVendido" class="hero-select">
+            <option value="">Selecione um produto...</option>
+          </select>
+        </div>
+      </div>
+      <button id="salvarHero" class="btn-primary btn-lg">💾 Salvar Destaques</button>
     </section>
   </main>
 
