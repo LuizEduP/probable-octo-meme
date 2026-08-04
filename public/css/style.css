@@ -71,6 +71,7 @@ input, select { font-family: inherit; }
 .header-top .container {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 24px;
 }
 
@@ -166,6 +167,7 @@ input, select { font-family: inherit; }
 
 .nav-list {
   display: flex;
+  justify-content: center;
   gap: 2px;
   overflow-x: auto;
   scrollbar-width: none;
