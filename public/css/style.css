@@ -201,7 +201,7 @@ input, select { font-family: inherit; }
   position: relative;
   background: linear-gradient(180deg, #020408 0%, #020408 40%, #0c1524 75%, #162032 100%);
   overflow: hidden;
-  padding: 80px 20px 100px;
+  padding: 60px 20px 80px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -224,26 +224,26 @@ input, select { font-family: inherit; }
   pointer-events: none;
 }
 
-.hero-container {
+/* Hero two-column layout */
+.hero-inner {
   position: relative;
   z-index: 1;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  max-width: 700px;
-  margin: 0;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 24px;
+  gap: 48px;
+}
+
+.hero-left {
+  flex: 0 0 auto;
+  max-width: 520px;
   text-align: left;
-  padding-left: 0;
 }
 
-.hero-logo {
-  height: 130px;
-  width: auto;
-  margin-bottom: 28px;
-  filter: drop-shadow(0 4px 20px rgba(0,0,0,0.5));
-}
-
-.hero h1 {
+.hero-left h1 {
   font-family: 'Playfair Display', 'Times New Roman', serif;
   font-size: 38px;
   font-weight: 600;
@@ -257,7 +257,7 @@ input, select { font-family: inherit; }
   font-size: 15px;
   color: var(--text-secondary);
   line-height: 1.7;
-  max-width: 540px;
+  max-width: 480px;
   margin-bottom: 32px;
   font-family: 'Inter', sans-serif;
 }
@@ -291,9 +291,178 @@ input, select { font-family: inherit; }
 
 .hero.hidden { display: none; }
 
+/* ---------- Hero Cards (direita) ---------- */
+.hero-right {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.hero-cards {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+/* Base do card - Glassmorphism */
+.hcard {
+  position: relative;
+  width: 200px;
+  height: 260px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              border-color 0.35s ease,
+              box-shadow 0.35s ease;
+}
+
+/* Camada de glow atrás do card */
+.hcard-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: 20px;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.35s ease;
+}
+
+/* Cores de glow por card */
+.hcard--cyan  { --glow: #00e5ff; }
+.hcard--purple { --glow: #c084fc; }
+.hcard--gold   { --glow: #fbbf24; }
+
+.hcard--cyan  .hcard-glow { box-shadow: 0 0 28px 4px rgba(0, 229, 255, 0.35), 0 0 60px 8px rgba(0, 229, 255, 0.12); }
+.hcard--purple .hcard-glow { box-shadow: 0 0 28px 4px rgba(192, 132, 252, 0.35), 0 0 60px 8px rgba(192, 132, 252, 0.12); }
+.hcard--gold   .hcard-glow { box-shadow: 0 0 28px 4px rgba(251, 191, 36, 0.35), 0 0 60px 8px rgba(251, 191, 36, 0.12); }
+
+/* Borda sutil com cor */
+.hcard--cyan  { border-color: rgba(0, 229, 255, 0.25); }
+.hcard--purple { border-color: rgba(192, 132, 252, 0.25); }
+.hcard--gold   { border-color: rgba(251, 191, 36, 0.25); }
+
+/* Imagem do produto */
+.hcard-img {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px 8px;
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.hcard-img img {
+  width: 130px;
+  height: 130px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 16px rgba(0,0,0,0.5));
+}
+
+/* Tag na base */
+.hcard-tag {
+  display: block;
+  padding: 6px 20px;
+  margin-bottom: 18px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+  transition: background 0.35s ease, color 0.35s ease;
+}
+
+.hcard--cyan  .hcard-tag { color: #67e8f9; }
+.hcard--purple .hcard-tag { color: #d8b4fe; }
+.hcard--gold   .hcard-tag { color: #fde68a; }
+
+/* ========== HOVER ========== */
+.hcard:hover {
+  transform: scale(1.06);
+  border-color: var(--glow);
+}
+
+.hcard:hover .hcard-glow {
+  opacity: 1;
+}
+
+.hcard:hover .hcard-img {
+  transform: translateY(-12px);
+}
+
+.hcard:hover .hcard-tag {
+  background: var(--glow);
+  color: #0a0f18;
+}
+
+/* Hero logo (unused, kept for reference) */
+.hero-logo {
+  height: 130px;
+  width: auto;
+  margin-bottom: 28px;
+  filter: drop-shadow(0 4px 20px rgba(0,0,0,0.5));
+}
+
+/* old hero-container removed */
+
 @keyframes heroBounce {
   0%, 100% { transform: translateY(0); opacity: 0.6; }
   50% { transform: translateY(6px); opacity: 1; }
+}
+
+/* ==================== RESPONSIVE HERO ==================== */
+@media (max-width: 1024px) {
+  .hero-inner {
+    flex-direction: column;
+    gap: 32px;
+    padding: 0 16px;
+  }
+
+  .hero-left {
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .hero-left h1 { font-size: 28px; }
+  .hero-subtitle { max-width: 100%; }
+
+  .hero-right {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .hero-cards {
+    flex-direction: row;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    gap: 14px;
+    max-width: 100%;
+  }
+
+  .hero-cards::-webkit-scrollbar { display: none; }
+
+  .hcard {
+    flex: 0 0 180px;
+    height: 240px;
+    scroll-snap-align: center;
+  }
+
+  .hcard-img img {
+    width: 110px;
+    height: 110px;
+  }
 }
 
 /* ==================== PRODUCTS WRAPPER ==================== */
