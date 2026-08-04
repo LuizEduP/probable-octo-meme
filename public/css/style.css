@@ -300,19 +300,21 @@ input, select { font-family: inherit; }
 
 .hero-cards {
   display: flex;
-  gap: 20px;
+  gap: 24px;
   align-items: center;
 }
 
-/* Base do card - Glassmorphism */
+/* =============================================
+   CARD — Vidro Fumê de Alto Luxo
+   ============================================= */
 .hcard {
   position: relative;
-  width: 200px;
-  height: 260px;
-  border-radius: 18px;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  width: 190px;
+  height: 310px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
@@ -320,89 +322,106 @@ input, select { font-family: inherit; }
   justify-content: center;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              border-color 0.35s ease,
-              box-shadow 0.35s ease;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  transition:
+    transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    box-shadow 0.5s ease,
+    border-color 0.5s ease;
 }
 
-/* Camada de glow atrás do card */
-.hcard-glow {
+/* Reflexo superior — metal escovado champanhe */
+.hcard-reflex {
   position: absolute;
-  inset: -2px;
-  border-radius: 20px;
-  opacity: 0;
-  z-index: -1;
-  transition: opacity 0.35s ease;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: linear-gradient(
+    180deg,
+    rgba(212, 175, 115, 0.09) 0%,
+    rgba(212, 175, 115, 0.03) 30%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 0;
 }
 
-/* Cores de glow por card */
-.hcard--cyan  { --glow: #00e5ff; }
-.hcard--purple { --glow: #c084fc; }
-.hcard--gold   { --glow: #fbbf24; }
-
-.hcard--cyan  .hcard-glow { box-shadow: 0 0 28px 4px rgba(0, 229, 255, 0.35), 0 0 60px 8px rgba(0, 229, 255, 0.12); }
-.hcard--purple .hcard-glow { box-shadow: 0 0 28px 4px rgba(192, 132, 252, 0.35), 0 0 60px 8px rgba(192, 132, 252, 0.12); }
-.hcard--gold   .hcard-glow { box-shadow: 0 0 28px 4px rgba(251, 191, 36, 0.35), 0 0 60px 8px rgba(251, 191, 36, 0.12); }
-
-/* Borda sutil com cor */
-.hcard--cyan  { border-color: rgba(0, 229, 255, 0.25); }
-.hcard--purple { border-color: rgba(192, 132, 252, 0.25); }
-.hcard--gold   { border-color: rgba(251, 191, 36, 0.25); }
-
-/* Imagem do produto */
+/* Área da imagem do produto */
 .hcard-img {
+  position: relative;
+  z-index: 1;
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 16px 8px;
-  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  padding: 32px 20px 8px;
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .hcard-img img {
-  width: 130px;
-  height: 130px;
+  width: 140px;
+  height: 140px;
   object-fit: contain;
-  filter: drop-shadow(0 6px 16px rgba(0,0,0,0.5));
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.5));
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-/* Tag na base */
+/* Linha divisória sutil acima da tag */
+.hcard::before {
+  content: '';
+  position: absolute;
+  bottom: 52px;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212, 175, 115, 0.25) 50%,
+    transparent 100%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Tag inferior — tipografia de luxo */
 .hcard-tag {
+  position: relative;
+  z-index: 1;
   display: block;
-  padding: 6px 20px;
-  margin-bottom: 18px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  border-radius: 50px;
+  padding: 14px 0 22px;
   font-family: 'Inter', sans-serif;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.8);
-  transition: background 0.35s ease, color 0.35s ease;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: rgba(212, 175, 115, 0.8);
+  text-align: center;
+  transition: color 0.5s ease, letter-spacing 0.5s ease;
 }
 
-.hcard--cyan  .hcard-tag { color: #67e8f9; }
-.hcard--purple .hcard-tag { color: #d8b4fe; }
-.hcard--gold   .hcard-tag { color: #fde68a; }
-
-/* ========== HOVER ========== */
+/* ========== HOVER — Flutuação Lenta ========== */
 .hcard:hover {
-  transform: scale(1.06);
-  border-color: var(--glow);
-}
-
-.hcard:hover .hcard-glow {
-  opacity: 1;
+  transform: translateY(-8px);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 32px 56px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
 }
 
 .hcard:hover .hcard-img {
-  transform: translateY(-12px);
+  transform: translateY(-10px);
+}
+
+.hcard:hover .hcard-img img {
+  transform: scale(1.04);
 }
 
 .hcard:hover .hcard-tag {
-  background: var(--glow);
-  color: #0a0f18;
+  color: rgba(212, 175, 115, 1);
+  letter-spacing: 3px;
 }
 
 /* Hero logo (unused, kept for reference) */
@@ -447,21 +466,21 @@ input, select { font-family: inherit; }
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 8px;
-    gap: 14px;
+    gap: 16px;
     max-width: 100%;
   }
 
   .hero-cards::-webkit-scrollbar { display: none; }
 
   .hcard {
-    flex: 0 0 180px;
-    height: 240px;
+    flex: 0 0 170px;
+    height: 270px;
     scroll-snap-align: center;
   }
 
   .hcard-img img {
-    width: 110px;
-    height: 110px;
+    width: 115px;
+    height: 115px;
   }
 }
 
