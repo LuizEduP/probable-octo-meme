@@ -38,6 +38,7 @@ const noResults = $('#noResults');
 const sectionTitle = $('#sectionTitle');
 const sortSelect = $('#sortSelect');
 const toast = $('#toast');
+const hero = $('.hero');
 
 // ==================== INICIALIZAÇÃO ====================
 async function init() {
@@ -53,12 +54,14 @@ function setupEventListeners() {
   searchBtn.addEventListener('click', () => {
     buscaAtual = searchInput.value.trim();
     paginaAtual = 1;
+    atualizarHero();
     carregarProdutos();
   });
   searchInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       buscaAtual = searchInput.value.trim();
       paginaAtual = 1;
+      atualizarHero();
       carregarProdutos();
     }
   });
@@ -95,6 +98,7 @@ function setupEventListeners() {
     searchInput.value = '';
     paginaAtual = 1;
     atualizarCategoriaAtiva();
+    atualizarHero();
     carregarProdutos();
   });
 
@@ -147,6 +151,14 @@ function atualizarCategoriaAtiva() {
   $$('.nav-link').forEach(link => {
     link.classList.toggle('active', link.dataset.categoria === categoriaAtiva);
   });
+}
+
+function atualizarHero() {
+  if (categoriaAtiva === '' && buscaAtual === '') {
+    hero.classList.remove('hidden');
+  } else {
+    hero.classList.add('hidden');
+  }
 }
 
 // ==================== PRODUTOS ====================
