@@ -686,11 +686,12 @@ input, select { font-family: inherit; }
   width: 420px;
   max-width: 100vw;
   height: 100vh;
-  background: var(--bg-card);
+  height: 100dvh;
+  background: #fff;
   z-index: 201;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid #e5e7eb;
   transition: right 0.3s ease;
 }
 
@@ -701,18 +702,19 @@ input, select { font-family: inherit; }
   align-items: center;
   justify-content: space-between;
   padding: 18px 24px;
-  background: var(--bg-header);
-  border-bottom: 1px solid var(--border);
+  background: #f5f6f8;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 .cart-header h3 {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #1a1d26;
 }
 
 .cart-close {
-  color: var(--text-secondary);
+  color: #6b7280;
   font-size: 24px;
   padding: 4px;
   transition: color var(--transition);
@@ -724,7 +726,7 @@ input, select { font-family: inherit; }
 
 .cart-empty {
   text-align: center;
-  color: var(--text-muted);
+  color: #9ca3af;
   padding: 48px 0;
   font-size: 14px;
 }
@@ -733,7 +735,7 @@ input, select { font-family: inherit; }
   display: flex;
   gap: 14px;
   padding: 14px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .cart-item-img {
@@ -741,7 +743,7 @@ input, select { font-family: inherit; }
   height: 72px;
   object-fit: contain;
   border-radius: var(--radius);
-  background: var(--bg-secondary);
+  background: #f9fafb;
   flex-shrink: 0;
 }
 
@@ -750,7 +752,7 @@ input, select { font-family: inherit; }
 .cart-item-name {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: #1f2937;
   margin-bottom: 4px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -762,7 +764,7 @@ input, select { font-family: inherit; }
 .cart-item-price {
   font-size: 15px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #111827;
   font-family: 'Inter', sans-serif;
 }
 
@@ -777,10 +779,10 @@ input, select { font-family: inherit; }
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--bg-secondary);
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
   font-size: 15px;
-  color: var(--text-secondary);
+  color: #374151;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -790,7 +792,7 @@ input, select { font-family: inherit; }
 
 .qty-btn:hover {
   background: var(--accent);
-  color: #0a0f18;
+  color: #fff;
   border-color: var(--accent);
 }
 
@@ -799,12 +801,12 @@ input, select { font-family: inherit; }
   font-weight: 600;
   min-width: 18px;
   text-align: center;
-  color: var(--text-primary);
+  color: #1f2937;
   font-family: 'Inter', sans-serif;
 }
 
 .cart-item-remove {
-  color: var(--text-muted);
+  color: #9ca3af;
   font-size: 16px;
   padding: 4px;
   align-self: flex-start;
@@ -814,9 +816,10 @@ input, select { font-family: inherit; }
 .cart-item-remove:hover { color: var(--red); }
 
 .cart-footer {
-  padding: 18px 24px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-header);
+  flex-shrink: 0;
+  padding: 18px 24px calc(18px + env(safe-area-inset-bottom, 8px));
+  border-top: 1px solid #e5e7eb;
+  background: #f5f6f8;
 }
 
 .cart-total {
@@ -825,7 +828,7 @@ input, select { font-family: inherit; }
   align-items: center;
   font-size: 15px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: #6b7280;
   margin-bottom: 14px;
   font-family: 'Inter', sans-serif;
 }
@@ -833,7 +836,7 @@ input, select { font-family: inherit; }
 .cart-total span:last-child {
   font-size: 22px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #111827;
 }
 
 .checkout-btn {
