@@ -120,8 +120,9 @@ function setupEventListeners() {
 async function carregarHero() {
   try {
     const res = await fetch(`${API_BASE}/api/produtos/hero`);
+    if (!res.ok) throw new Error('API hero falhou');
     const heroProds = await res.json();
-    if (heroProds.length === 0) {
+    if (!heroProds || heroProds.length === 0) {
       heroCards.innerHTML = '';
       return;
     }
@@ -137,6 +138,7 @@ async function carregarHero() {
     `).join('');
   } catch (err) {
     console.error('Erro ao carregar hero:', err);
+    heroCards.innerHTML = '';
   }
 }
 

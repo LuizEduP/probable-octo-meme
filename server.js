@@ -194,6 +194,20 @@ app.get('/api/produtos', async (req, res) => {
   }
 });
 
+// ==================== API DE PRODUTOS (ADMIN) ====================
+app.get('/api/produtos/hero', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM produtos WHERE hero_tag IS NOT NULL ORDER BY
+       CASE hero_tag WHEN 'lancamento' THEN 1 WHEN 'exclusivo' THEN 2 WHEN 'mais_vendido' THEN 3 END`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 app.get('/api/produtos/:id', async (req, res) => {
   try {
     const result = await pool.query(
@@ -207,20 +221,6 @@ app.get('/api/produtos/:id', async (req, res) => {
       return res.status(404).json({ erro: 'Produto não encontrado' });
     }
     res.json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ erro: 'Erro interno' });
-  }
-});
-
-// ==================== API DE PRODUTOS (ADMIN) ====================
-app.get('/api/produtos/hero', async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT * FROM produtos WHERE hero_tag IS NOT NULL ORDER BY
-       CASE hero_tag WHEN 'lancamento' THEN 1 WHEN 'exclusivo' THEN 2 WHEN 'mais_vendido' THEN 3 END`
-    );
-    res.json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ erro: 'Erro interno' });
