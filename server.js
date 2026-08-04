@@ -9,7 +9,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'loja-virtual-secret-key-2026';
-const WHATSAPP_NUMERO = '5521996892217';
+const WHATSAPP_NUMERO = '5521994368587';
 
 // ==================== BANCO DE DADOS POSTGRESQL ====================
 const pool = new Pool({
